@@ -65,3 +65,24 @@ def test_missing_column_raises(tmp_path):
     wb.save(bad)
     with pytest.raises(ValueError, match="chybí sloupec"):
         parse_order(bad)
+
+
+def test_zero_quantity_preserved(tmp_path):
+    import openpyxl
+    wb = openpyxl.Workbook()
+    wb.active.append(["Položka", "Objekt", "Označení pozice", "Šířka (mm)",
+                      "Výška (mm)", "Kus", "Skladba skla", "Typ skla"])
+    wb.active.append([1, "x", 1, 800, 600, 0, "4-16-4", "dvojsklo"])
+    p = tmp_path / "zero.xlsx"
+    wb.save(p)
+    assert parse_order(p)[0].quantity == 0
+
+
+def test_kusovnik_column_not_mistaken_for_kus(tmp_path):
+    import openpyxl
+    wb = openpyxl.Workbook()
+    wb.active.append(["Kusovník", "Šířka (mm)", "Výška (mm)", "Kus"])
+    wb.active.append(["A-1", 800, 600, 3])
+    p = tmp_path / "kusovnik.xlsx"
+    wb.save(p)
+    assert parse_order(p)[0].quantity == 3

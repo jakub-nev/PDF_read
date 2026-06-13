@@ -29,6 +29,18 @@ def test_swapped_orientation_is_warning():
     assert any("prohozen" in p for p in r.problems)
 
 
+def test_swap_does_not_steal_exact_match():
+    # order has both a panel and its transpose; invoice has only the transpose.
+    # The exact-dimension order row must claim it (OK); the other is MISSING —
+    # the swapped row must not grab the exact row's invoice line first.
+    res = match_items([order(830, 1400), order(1400, 830)],
+                      [invoice(1400, 830)])
+    by_dims = {(r.order_item.width, r.order_item.height): r.status
+               for r in res if r.order_item}
+    assert by_dims[(1400, 830)] == "OK"
+    assert by_dims[(830, 1400)] == "MISSING"
+
+
 def test_quantity_mismatch():
     [r] = match_items([order(830, 1400, qty=2)], [invoice(830, 1400, qty=1)])
     assert r.status == "WARNING"

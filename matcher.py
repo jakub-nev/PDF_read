@@ -40,20 +40,32 @@ def match_items(order_items: list[OrderItem],
     for it in order_items:
         ord_groups.setdefault((it.width, it.height), []).append(it)
 
+    # Decide pairings in two passes so a swapped-orientation order row can
+    # never steal the invoice line that an exact-dimension order row needs:
+    # match every exact dimension first, then fall back to swaps.
+    pairing: dict[tuple[int, int], tuple[list[InvoiceItem], bool]] = {}
+    pending: list[tuple[int, int]] = []
+    for dims in ord_groups:
+        inv_group = inv_groups.pop(dims, None)
+        if inv_group is not None:
+            pairing[dims] = (inv_group, False)
+        else:
+            pending.append(dims)
+    for dims in pending:
+        inv_group = inv_groups.pop((dims[1], dims[0]), None)
+        if inv_group is not None:
+            pairing[dims] = (inv_group, True)
+
     results: list[MatchResult] = []
     for dims, ord_group in ord_groups.items():
-        inv_group = inv_groups.pop(dims, None)
-        swapped = False
-        if inv_group is None:
-            inv_group = inv_groups.pop((dims[1], dims[0]), None)
-            swapped = inv_group is not None
-
-        if inv_group is None:
+        pair = pairing.get(dims)
+        if pair is None:
             for o in ord_group:
                 results.append(MatchResult(
                     "MISSING", o, None,
                     [f"rozměr {o.width} x {o.height} na faktuře chybí"]))
             continue
+        inv_group, swapped = pair
 
         shared: list[str] = []
         if swapped:

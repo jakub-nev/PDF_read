@@ -1,7 +1,12 @@
 name: Build macOS app
 
-# Builds a standalone "Kontrola skla.app" (wrapped in a .dmg) for both Intel
-# and Apple Silicon Macs. Download the result from the run's Artifacts section.
+# Builds a standalone "Kontrola skla.app" (wrapped in a .dmg) as an Intel
+# (x86_64) binary. We build on the fast, always-available Apple Silicon runner
+# using Rosetta 2 + an x86_64 Python, instead of the scarce/slow macos-13 Intel
+# runner pool. An x86_64 app runs natively on Intel Macs and on Apple Silicon
+# Macs via Rosetta, so this single binary covers every Mac.
+#
+# Download the result from the run's Artifacts section.
 
 on:
   push:
@@ -14,23 +19,23 @@ on:
 
 jobs:
   build:
-    name: Build (${{ matrix.arch }})
-    runs-on: ${{ matrix.runner }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - runner: macos-13   # Intel (x86_64)
-            arch: intel
-          - runner: macos-14   # Apple Silicon (arm64)
-            arch: applesilicon
+    name: Build (Intel x86_64)
+    runs-on: macos-14   # Apple Silicon runner (fast queue)
 
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - name: Install Rosetta 2
+        run: softwareupdate --install-rosetta --agree-to-license || true
+
+      - name: Set up x86_64 Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          architecture: x64   # x86_64 build, runs under Rosetta on this runner
+
+      - name: Confirm interpreter architecture
+        run: python -c "import platform; print('arch:', platform.machine())"
 
       - name: Install dependencies
         run: |
@@ -48,11 +53,11 @@ jobs:
         run: |
           hdiutil create -volname "Kontrola skla" \
             -srcfolder "dist/Kontrola skla.app" \
-            -ov -format UDZO "dist/KontrolaSkla-${{ matrix.arch }}.dmg"
+            -ov -format UDZO "dist/KontrolaSkla-intel.dmg"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: KontrolaSkla-${{ matrix.arch }}
-          path: dist/KontrolaSkla-${{ matrix.arch }}.dmg
+          name: KontrolaSkla-intel
+          path: dist/KontrolaSkla-intel.dmg
           if-no-files-found: error

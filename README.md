@@ -26,9 +26,10 @@ porovnává se počet kusů a skladba (tloušťky skel a meziskelní rámeček).
 
 Aplikaci pro macOS sestaví GitHub Actions v cloudu (workflow
 `.github/workflows/build-macos.yml`) — není potřeba vlastní Mac. Po nahrání
-změn na GitHub se v záložce **Actions** spustí build pro Intel i Apple Silicon
-a výsledné `.dmg` se objeví v sekci **Artifacts** daného běhu. Build lze spustit
-i ručně tlačítkem **Run workflow**.
+změn na GitHub se v záložce **Actions** sestaví Intel (x86_64) `.dmg`, který
+běží jak na Intel Macích (nativně), tak na Apple Silicon (přes Rosetta). Výsledek
+najdete v sekci **Artifacts** daného běhu; build lze spustit i ručně tlačítkem
+**Run workflow**.
 
 Aplikace není podepsaná, takže ji při prvním spuštění otevřete přes pravé
 tlačítko → **Open** (jinak ji Gatekeeper zablokuje).

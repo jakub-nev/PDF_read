@@ -56,14 +56,29 @@ jobs:
         run: |
           set -euo pipefail
           arch -x86_64 "$PY" -m pip install --upgrade pip
-          arch -x86_64 "$PY" -m pip install pdfplumber openpyxl pyinstaller
+          # PyInstaller is pure-python + universal2 bootloaders -> install normally.
+          arch -x86_64 "$PY" -m pip install pyinstaller
+          # The python.org interpreter is universal2, so sysconfig reports the
+          # platform as "universal2" and a plain `pip install` may pull arm64
+          # wheels (e.g. cryptography). Force x86_64-only wheels into an isolated
+          # dir and feed them to PyInstaller via PYTHONPATH.
+          arch -x86_64 "$PY" -m pip install \
+            --platform macosx_10_9_x86_64 \
+            --platform macosx_11_0_x86_64 \
+            --platform macosx_12_0_x86_64 \
+            --only-binary=:all: \
+            --target "$RUNNER_TEMP/x86site" \
+            pdfplumber openpyxl
 
       # Tests are not run here: the invoice-parser tests need faktura_sklo.pdf,
       # which is intentionally git-ignored (real invoice data). Run `pytest`
       # locally instead. PyInstaller only needs the source code to build.
 
       - name: Build .app (x86_64)
-        run: arch -x86_64 "$PY" -m PyInstaller --noconfirm packaging/glass_check.spec
+        run: |
+          set -euo pipefail
+          PYTHONPATH="$RUNNER_TEMP/x86site" \
+            arch -x86_64 "$PY" -m PyInstaller --noconfirm packaging/glass_check.spec
 
       - name: Verify the built binary is x86_64
         run: |

@@ -1,0 +1,58 @@
+name: Build macOS app
+
+# Builds a standalone "Kontrola skla.app" (wrapped in a .dmg) for both Intel
+# and Apple Silicon Macs. Download the result from the run's Artifacts section.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "**.py"
+      - "packaging/**"
+      - ".github/workflows/build-macos.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-13   # Intel (x86_64)
+            arch: intel
+          - runner: macos-14   # Apple Silicon (arm64)
+            arch: applesilicon
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pdfplumber openpyxl pyinstaller
+
+      # Tests are not run here: the invoice-parser tests need faktura_sklo.pdf,
+      # which is intentionally git-ignored (real invoice data). Run `pytest`
+      # locally instead. PyInstaller only needs the source code to build.
+
+      - name: Build .app
+        run: pyinstaller --noconfirm packaging/glass_check.spec
+
+      - name: Package .dmg
+        run: |
+          hdiutil create -volname "Kontrola skla" \
+            -srcfolder "dist/Kontrola skla.app" \
+            -ov -format UDZO "dist/KontrolaSkla-${{ matrix.arch }}.dmg"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: KontrolaSkla-${{ matrix.arch }}
+          path: dist/KontrolaSkla-${{ matrix.arch }}.dmg
+          if-no-files-found: error

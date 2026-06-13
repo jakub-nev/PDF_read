@@ -1,1 +1,10 @@
 *.pdf
+
+# Python
+__pycache__/
+*.pyc
+
+# PyInstaller build output
+/build/
+/dist/
+*.manifest

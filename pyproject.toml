@@ -1,0 +1,13 @@
+[project]
+name = "pdf-read"
+version = "0.1.0"
+description = "Cross-check glass panel orders (xlsx) against supplier invoices (pdf)"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "pdfplumber>=0.11",
+    "openpyxl>=3.1",
+]
+
+[dependency-groups]
+dev = ["pytest>=8"]
